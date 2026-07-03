@@ -1,0 +1,56 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Admin / District Officer: Read and write everything
+    // Staff/Doctors/Pharmacists/Lab Techs: Read and write their own center's data
+    // Patients: No direct access
+
+    function isAdmin() {
+      return request.auth != null && request.auth.token.role == 'Admin';
+    }
+    
+    function isDistrictOfficer() {
+      return request.auth != null && request.auth.token.role == 'District Officer';
+    }
+    
+    function isStaffMember(centerId) {
+      return request.auth != null && 
+        (request.auth.token.role == 'Staff' || 
+         request.auth.token.role == 'PHC Worker' ||
+         request.auth.token.role == 'Doctor' ||
+         request.auth.token.role == 'Lab Technician' ||
+         request.auth.token.role == 'Pharmacist') && 
+        request.auth.token.centerId == centerId;
+    }
+
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin() || (request.auth != null && request.auth.uid == userId);
+    }
+    
+    match /centers/{centerId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin() || isDistrictOfficer();
+    }
+    
+    match /stock/{stockId} {
+      allow read: if request.auth != null && (isAdmin() || isDistrictOfficer() || isStaffMember(resource.data.centerId));
+      allow write: if isAdmin() || isDistrictOfficer() || (request.auth != null && isStaffMember(request.resource.data.centerId));
+    }
+    
+    match /patients/{patientId} {
+      allow read: if request.auth != null && (isAdmin() || isDistrictOfficer() || isStaffMember(resource.data.centerId));
+      allow write: if isAdmin() || isDistrictOfficer() || (request.auth != null && isStaffMember(request.resource.data.centerId));
+    }
+    
+    match /attendance/{attendanceId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin() || isDistrictOfficer() || (request.auth != null && isStaffMember(request.resource.data.centerId));
+    }
+    
+    match /alerts/{alertId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin() || isDistrictOfficer() || (request.auth != null && isStaffMember(request.resource.data.centerId));
+    }
+  }
+}
