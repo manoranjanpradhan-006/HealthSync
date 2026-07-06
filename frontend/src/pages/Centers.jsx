@@ -3,7 +3,7 @@ import { useApp } from "../context/AppContext";
 import { Map, Trophy, Compass, ArrowUpRight, BedDouble, Pill, Users } from "lucide-react";
 
 export const Centers = () => {
-  const { centers, stock, attendance, t } = useApp();
+  const { centers, stock, attendance, t, currentUser } = useApp();
   const [selectedCenterId, setSelectedCenterId] = useState("");
   const activeCenterId = selectedCenterId || centers[0]?.id || "";
 
@@ -78,7 +78,7 @@ export const Centers = () => {
                 <span>Geospatial Node Tracker</span>
               </span>
               <span className="text-[9px] text-slate-400 bg-slate-900 px-2 py-0.5 rounded-full uppercase border border-slate-800">
-                District: Anantapur
+                District: {currentUser?.district || "Default District"}
               </span>
             </div>
 

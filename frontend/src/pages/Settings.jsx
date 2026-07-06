@@ -1,7 +1,9 @@
 import React, { useState } from "react";
 import { useApp } from "../context/AppContext";
-import { Settings as SettingsIcon, Sliders, ShieldAlert, Cpu, Check, AlertCircle } from "lucide-react";
+import { Settings as SettingsIcon, Sliders, ShieldAlert, Cpu, Check, AlertCircle, Trash2 } from "lucide-react";
 import confetti from "canvas-confetti";
+import { doc, updateDoc, deleteDoc, collection, getDocs } from "firebase/firestore";
+import { dbInstance } from "../firebase/firebase";
 
 export const Settings = () => {
   const { 
@@ -9,7 +11,8 @@ export const Settings = () => {
     setIsSimulating, 
     language, 
     setLanguage, 
-    t 
+    t,
+    currentUser
   } = useApp();
 
   const [simSpeed, setSimSpeed] = useState("5"); // 5s, 10s, 30s
@@ -20,6 +23,73 @@ export const Settings = () => {
   // API Tokens
   const [openaiKey, setOpenaiKey] = useState(localStorage.getItem("healthsync_openai_key") || "");
   const [savedSuccess, setSavedSuccess] = useState(false);
+
+  // Database Cleanup State
+  const [isCleaning, setIsCleaning] = useState(false);
+  const [cleanMessage, setCleanMessage] = useState("");
+
+  const handleCleanDemoData = async () => {
+    if (!currentUser) return;
+    setIsCleaning(true);
+    setCleanMessage("Initializing database cleanup...");
+
+    try {
+      const collectionsToScan = [
+        "centers",
+        "stock",
+        "stock_transactions",
+        "consumption_log",
+        "patients",
+        "attendance",
+        "alerts"
+      ];
+
+      let deletedCount = 0;
+
+      // 1. Update User Profile District
+      const userDocRef = doc(dbInstance, "users", currentUser.uid);
+      await updateDoc(userDocRef, { district: "Default District" });
+      setCleanMessage("User profile district updated.");
+
+      // 2. Loop through sandboxed subcollections
+      for (const colName of collectionsToScan) {
+        setCleanMessage(`Scanning ${colName}...`);
+        const colRef = collection(dbInstance, "users", currentUser.uid, colName);
+        const snapshot = await getDocs(colRef);
+
+        for (const docSnap of snapshot.docs) {
+          const data = docSnap.data();
+          let hasAnantapur = false;
+
+          for (const val of Object.values(data)) {
+            if (typeof val === "string" && val.toLowerCase().includes("anantapur")) {
+              hasAnantapur = true;
+              break;
+            }
+          }
+
+          if (hasAnantapur) {
+            const docRef = doc(dbInstance, "users", currentUser.uid, colName, docSnap.id);
+            await deleteDoc(docRef);
+            deletedCount++;
+          }
+        }
+      }
+
+      setCleanMessage(`Cleanup successful! Deleted ${deletedCount} records.`);
+      confetti({
+        particleCount: 80,
+        spread: 60,
+        colors: ["#10b981", "#3b82f6"]
+      });
+    } catch (err) {
+      console.error(err);
+      setCleanMessage("Cleanup failed: " + err.message);
+    } finally {
+      setIsCleaning(false);
+      setTimeout(() => setCleanMessage(""), 5000);
+    }
+  };
 
   const handleSaveAPIKeys = (e) => {
     e.preventDefault();
@@ -180,6 +250,44 @@ export const Settings = () => {
               Save Credentials
             </button>
           </form>
+        </div>
+
+        {/* Panel 4: Database Maintenance */}
+        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm md:col-span-2 space-y-4">
+          <div className="flex items-center space-x-2 border-b border-slate-100 pb-3 mb-1">
+            <Trash2 className="w-5 h-5 text-red-600" />
+            <h3 className="font-bold text-slate-800 text-xs uppercase tracking-wide">Database Maintenance</h3>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <p className="text-xs font-semibold text-slate-700">Purge Demo Data ("Anantapur")</p>
+              <p className="text-[10px] text-slate-400 font-medium leading-relaxed mt-1">
+                Deletes all healthcare centers, medicine inventory logs, and system alerts under your sandbox containing references to the "Anantapur" demo data. It also updates your user profile district to a generic "Default District".
+              </p>
+            </div>
+
+            {cleanMessage && (
+              <div className={`p-3 rounded-xl text-2xs font-semibold ${
+                cleanMessage.includes("failed") 
+                  ? "bg-red-50 border border-red-100 text-red-700" 
+                  : cleanMessage.includes("successful") 
+                    ? "bg-emerald-50 border border-emerald-100 text-emerald-700" 
+                    : "bg-slate-50 border border-slate-100 text-slate-605"
+              }`}>
+                {cleanMessage}
+              </div>
+            )}
+
+            <button
+              type="button"
+              disabled={isCleaning}
+              onClick={handleCleanDemoData}
+              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-2xs uppercase tracking-wider shadow cursor-pointer disabled:opacity-50"
+            >
+              {isCleaning ? "Purging Data..." : "Purge Demo Data"}
+            </button>
+          </div>
         </div>
 
       </div>

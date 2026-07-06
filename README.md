@@ -86,5 +86,5 @@ The platform includes **One-Click Quick Login** buttons on the login page for ra
 | :--- | :--- | :--- |
 | **Chief Admin** | `admin@healthsync.gov.in` | Global District metrics (All nodes) |
 | **District Officer** | `officer@healthsync.gov.in` | Aggregated dashboard & PHC Leaderboards |
-| **Pharmacist** | `staff@healthsync.gov.in` | Node PHC Anantapur (Stock modifications enabled) |
-| **Node Doctor** | `doctor@healthsync.gov.in` | Node PHC Anantapur (Roster check-ins enabled) |
+| **Pharmacist** | `staff@healthsync.gov.in` | Node PHC Default (Stock modifications enabled) |
+| **Node Doctor** | `doctor@healthsync.gov.in` | Node PHC Default (Roster check-ins enabled) |

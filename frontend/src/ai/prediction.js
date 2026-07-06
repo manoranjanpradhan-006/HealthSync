@@ -2,11 +2,11 @@
 // Integrates with OpenAI API or falls back to a high-fidelity local prediction model.
 
 export const predictMedicineDemand = async (last7DaysUsage) => {
-  const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+  const apiKey = localStorage.getItem("healthsync_openai_key") || import.meta.env.VITE_OPENAI_API_KEY;
 
   if (apiKey && apiKey !== "mock-key") {
     try {
-      const response = await fetch("https://api.openai.com/v1/chat/completypes", {
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

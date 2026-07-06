@@ -13,7 +13,7 @@ const DEFAULT_USERS = {
     name: "Dr. Srikanth Sharma",
     email: "admin@healthsync.gov.in",
     role: "Admin",
-    district: "Anantapur",
+    district: "Default District",
     centerId: "all"
   },
   "officer@healthsync.gov.in": {
@@ -21,7 +21,7 @@ const DEFAULT_USERS = {
     name: "Mr. Ramesh Reddy",
     email: "officer@healthsync.gov.in",
     role: "District Officer",
-    district: "Anantapur",
+    district: "Default District",
     centerId: "all"
   },
   "staff@healthsync.gov.in": {
@@ -29,7 +29,7 @@ const DEFAULT_USERS = {
     name: "Anil Kumar",
     email: "staff@healthsync.gov.in",
     role: "Pharmacist",
-    district: "Anantapur",
+    district: "Default District",
     centerId: ""
   },
   "doctor@healthsync.gov.in": {
@@ -37,7 +37,7 @@ const DEFAULT_USERS = {
     name: "Dr. Rajesh Kumar",
     email: "doctor@healthsync.gov.in",
     role: "Doctor",
-    district: "Anantapur",
+    district: "Default District",
     centerId: ""
   }
 };
@@ -93,7 +93,7 @@ export const auth = {
                 email: firebaseUser.email,
                 name: firebaseUser.displayName || firebaseUser.email.split("@")[0],
                 role,
-                district: "Anantapur",
+                district: "Default District",
                 centerId
               };
               
@@ -112,7 +112,7 @@ export const auth = {
               email: firebaseUser.email,
               name: firebaseUser.email.split("@")[0],
               role: "Staff",
-              district: "Anantapur",
+              district: "Default District",
               centerId: ""
             };
           }
@@ -164,7 +164,7 @@ export const auth = {
           email: firebaseUser.email,
           name: firebaseUser.displayName || formattedEmail.split("@")[0],
           role,
-          district: "Anantapur",
+          district: "Default District",
           centerId
         };
         
@@ -211,7 +211,7 @@ export const auth = {
       name: "Dr. Sandeep Singh (Google Auth)",
       email: "sandeep.singh@gmail.com",
       role: "District Officer",
-      district: "Anantapur",
+      district: "Default District",
       centerId: "all"
     };
     localStorage.setItem("healthsync_auth_user", JSON.stringify(currentUser));
@@ -233,7 +233,7 @@ export const auth = {
       const profile = {
         name: extraData.name || "Healthcare Staff",
         role: extraData.role || "Staff",
-        district: extraData.district || "Anantapur",
+        district: extraData.district || "Default District",
         centerId: extraData.centerId || ""
       };
 
@@ -255,7 +255,7 @@ export const auth = {
         name: extraData.name || "Healthcare Staff",
         email: formattedEmail,
         role: extraData.role || "Staff",
-        district: extraData.district || "Anantapur",
+        district: extraData.district || "Default District",
         centerId: extraData.centerId || ""
       };
 

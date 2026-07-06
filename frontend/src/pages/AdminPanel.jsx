@@ -798,7 +798,7 @@ export const AdminPanel = () => {
                 <label className="block text-3xs font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">Center Name</label>
                 <input
                   type="text"
-                  placeholder="e.g. PHC Anantapur"
+                  placeholder="e.g. City PHC"
                   value={newCenterName}
                   onChange={(e) => setNewCenterName(e.target.value)}
                   className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-2xs font-semibold text-slate-650 focus:outline-none focus:ring-1 focus:ring-teal-500"
@@ -844,7 +844,7 @@ export const AdminPanel = () => {
                   <label className="block text-3xs font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">District Area</label>
                   <input
                     type="text"
-                    placeholder="e.g. Anantapur"
+                    placeholder="e.g. Central District"
                     value={newCenterDistrict}
                     onChange={(e) => setNewCenterDistrict(e.target.value)}
                     className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-2xs font-semibold text-slate-650 focus:outline-none focus:ring-1 focus:ring-teal-500"

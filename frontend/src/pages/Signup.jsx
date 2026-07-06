@@ -158,7 +158,7 @@ export const Signup = ({ onToggle }) => {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Anantapur"
+                  placeholder="e.g. Central District"
                   value={district}
                   onChange={(e) => setDistrict(e.target.value)}
                   className="w-full text-xs border border-slate-200 rounded-xl pl-10 pr-4 py-2 bg-slate-50 focus:outline-none focus:border-teal-500 font-medium"
