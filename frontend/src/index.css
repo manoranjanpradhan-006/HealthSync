@@ -66,3 +66,38 @@
 .transition-all-300 {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+/* Leaflet Customizations for Dark Mode Map */
+.dark-map .leaflet-tile {
+  filter: invert(100%) hue-rotate(180deg) brightness(85%) contrast(90%);
+}
+.dark-map .leaflet-container {
+  background: #0f172a;
+  border-radius: 0.75rem;
+}
+.leaflet-tooltip {
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
+  border: 1px solid #334155 !important;
+  border-radius: 0.5rem !important;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1) !important;
+  font-family: 'Outfit', 'Inter', system-ui, sans-serif !important;
+  padding: 4px 8px !important;
+}
+.leaflet-tooltip-top:before {
+  border-top-color: #0f172a !important;
+}
+.leaflet-bar {
+  border: 1px solid #334155 !important;
+  box-shadow: none !important;
+}
+.leaflet-bar a {
+  background-color: #1e293b !important;
+  color: #94a3b8 !important;
+  border-bottom: 1px solid #334155 !important;
+}
+.leaflet-bar a:hover {
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
+}
+
