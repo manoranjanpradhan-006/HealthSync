@@ -15,8 +15,8 @@ export const StockTrendsChart = () => {
   const { stock, stockTransactions, consumptionLog, currentUser, centers } = useApp();
 
   // Active branch selector logic
-  const isDistrictScoped = true;
-  const activeCenterId = isDistrictScoped ? (centers[0]?.id || "") : (currentUser?.centerId || centers[0]?.id || "");
+  const isDistrictScoped = currentUser?.role === "Admin" || currentUser?.role === "District Officer";
+  const activeCenterId = isDistrictScoped ? (centers[0]?.id || "") : (currentUser?.centerId || "");
 
   const dates = [
     { key: "2026-06-29", label: "Mon" },

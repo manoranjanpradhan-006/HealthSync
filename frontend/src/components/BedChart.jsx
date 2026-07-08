@@ -12,11 +12,11 @@ import {
 export const BedChart = () => {
   const { currentUser, centers, t } = useApp();
 
-  const isDistrictScoped = true;
-  const activeCenterId = isDistrictScoped ? (centers[0]?.id || "") : (currentUser?.centerId || centers[0]?.id || "");
+  const isDistrictScoped = currentUser?.role === "Admin" || currentUser?.role === "District Officer";
+  const activeCenterId = isDistrictScoped ? (centers[0]?.id || "") : (currentUser?.centerId || "");
   const defaultCenterPlaceholder = { 
     id: "none", 
-    centerName: "No Hospital Center Registered", 
+    centerName: "No Healthcare Center Assigned", 
     type: "PHC", 
     district: "N/A", 
     capacity: 0, 
@@ -24,7 +24,7 @@ export const BedChart = () => {
     bedsOccupied: 0, 
     healthScore: 0 
   };
-  const currentCenter = centers.find(c => c.id === activeCenterId) || centers[0] || defaultCenterPlaceholder;
+  const currentCenter = centers.find(c => c.id === activeCenterId) || defaultCenterPlaceholder;
 
   const data = [
     { name: t("available"), value: currentCenter?.bedsAvailable || 0 },

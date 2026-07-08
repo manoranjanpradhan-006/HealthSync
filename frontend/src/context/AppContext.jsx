@@ -205,44 +205,33 @@ export const AppProvider = ({ children }) => {
     return unsub;
   }, []);
 
-  // Auto-assign center if user is logged in, has no center assigned, and centers are loaded
-  useEffect(() => {
-    if (currentUser && 
-        currentUser.role !== "Admin" && 
-        currentUser.role !== "District Officer" && 
-        !currentUser.centerId && 
-        centers.length > 0) {
-      
-      const defaultCenterId = centers[0].id;
-      
-      const updateProfile = async () => {
-        try {
-          if (!IS_MOCKED) {
-            const userDocRef = doc(dbInstance, "users", currentUser.uid);
-            await updateDoc(userDocRef, { centerId: defaultCenterId });
-          } else {
-            // Mock mode local storage update
-            const localUsers = JSON.parse(localStorage.getItem("healthsync_db_users") || "{}");
-            const emailKey = Object.keys(localUsers).find(k => localUsers[k].uid === currentUser.uid);
-            if (emailKey) {
-              localUsers[emailKey].centerId = defaultCenterId;
-              localStorage.setItem("healthsync_db_users", JSON.stringify(localUsers));
-            }
-          }
-          
-          // Update local state and session
-          const updatedUser = { ...currentUser, centerId: defaultCenterId };
-          setCurrentUser(updatedUser);
-          localStorage.setItem("healthsync_auth_user", JSON.stringify(updatedUser));
-          console.log(`[Auto-Assign Center] Assigned ${currentUser.name} to center ${defaultCenterId}`);
-        } catch (e) {
-          console.error("Auto-assign center failed:", e);
+  // Expose updateUserCenter action
+  const updateUserCenter = async (centerId) => {
+    if (!currentUser) return;
+    try {
+      if (!IS_MOCKED) {
+        const userDocRef = doc(dbInstance, "users", currentUser.uid);
+        await updateDoc(userDocRef, { centerId });
+      } else {
+        // Mock mode local storage update
+        const localUsers = JSON.parse(localStorage.getItem("healthsync_db_users") || "{}");
+        const emailKey = Object.keys(localUsers).find(k => localUsers[k].uid === currentUser.uid);
+        if (emailKey) {
+          localUsers[emailKey].centerId = centerId;
+          localStorage.setItem("healthsync_db_users", JSON.stringify(localUsers));
         }
-      };
+      }
       
-      updateProfile();
+      // Update local state and session
+      const updatedUser = { ...currentUser, centerId };
+      setCurrentUser(updatedUser);
+      localStorage.setItem("healthsync_auth_user", JSON.stringify(updatedUser));
+      console.log(`[Assign Center] Assigned ${currentUser.name} to center ${centerId}`);
+    } catch (e) {
+      console.error("Assign center failed:", e);
     }
-  }, [currentUser, centers]);
+  };
+
 
   // Firestore DB Snapshot Listeners
   useEffect(() => {
@@ -574,7 +563,8 @@ export const AppProvider = ({ children }) => {
       setIsSimulating,
       redistributionRecommendations,
       t,
-      processVoiceCommand
+      processVoiceCommand,
+      updateUserCenter
     }}>
       {children}
     </AppContext.Provider>

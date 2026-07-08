@@ -18,7 +18,8 @@ import {
   FileText,
   BadgeAlert,
   MapPin,
-  Bot
+  Bot,
+  AlertCircle
 } from "lucide-react";
 import confetti from "canvas-confetti";
 
@@ -131,8 +132,23 @@ export const Dashboard = () => {
     }
   };
 
+  const isDistrictScoped = currentUser?.role === "Admin" || currentUser?.role === "District Officer";
+
   return (
     <div className="space-y-8 pb-12">
+      
+      {/* Unassigned Warning Banner */}
+      {!isDistrictScoped && !currentUser?.centerId && (
+        <div className="bg-amber-50 border border-amber-200 text-amber-800 px-6 py-4 rounded-2xl flex items-center space-x-3 shadow-md">
+          <AlertCircle className="w-5 h-5 shrink-0 text-amber-600 animate-bounce" />
+          <div className="text-xs font-semibold">
+            <p className="font-bold uppercase tracking-wider">Healthcare Center Not Assigned</p>
+            <p className="text-[10px] text-amber-600 font-medium leading-relaxed mt-0.5">
+              You are currently not assigned to any healthcare center. Please use the selection dropdown in the top navigation bar to assign yourself to your appropriate facility.
+            </p>
+          </div>
+        </div>
+      )}
       
       {/* Simulation Banner Alert */}
       <div className="bg-slate-900 text-white px-6 py-3 rounded-2xl flex items-center justify-between shadow-lg border border-slate-800">

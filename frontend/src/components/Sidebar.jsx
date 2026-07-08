@@ -23,7 +23,7 @@ export const Sidebar = () => {
   };
 
   // Determine tabs based on role
-  const isDistrictScoped = true;
+  const isDistrictScoped = currentUser?.role === "Admin" || currentUser?.role === "District Officer";
   
   const menuItems = [
     { id: "dashboard", label: t("dashboard"), icon: LayoutDashboard },

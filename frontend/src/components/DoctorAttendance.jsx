@@ -6,8 +6,8 @@ import { UserCheck, UserX, Clock, Stethoscope } from "lucide-react";
 export const DoctorAttendance = () => {
   const { currentUser, attendance, centers, t } = useApp();
 
-  const isDistrictScoped = true;
-  const activeCenterId = isDistrictScoped ? (centers[0]?.id || "") : (currentUser?.centerId || centers[0]?.id || "");
+  const isDistrictScoped = currentUser?.role === "Admin" || currentUser?.role === "District Officer";
+  const activeCenterId = isDistrictScoped ? (centers[0]?.id || "") : (currentUser?.centerId || "");
   const centerDocs = attendance.filter(a => a.centerId === activeCenterId);
 
   const toggleAttendance = async (docId, currentStatus) => {

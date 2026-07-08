@@ -25,8 +25,8 @@ export const MedicineStock = () => {
     reconcileStockBalances 
   } = useApp();
 
-  const isDistrictScoped = true;
-  const defaultBranch = isDistrictScoped ? "all" : (currentUser?.centerId || centers[0]?.id || "");
+  const isDistrictScoped = currentUser?.role === "Admin" || currentUser?.role === "District Officer";
+  const defaultBranch = isDistrictScoped ? "all" : (currentUser?.centerId || "");
 
   // UI Filter States
   const [searchTerm, setSearchTerm] = useState("");
@@ -40,11 +40,18 @@ export const MedicineStock = () => {
   const [formSupplier, setFormSupplier] = useState("");
   const [formSupplyDate, setFormSupplyDate] = useState("2026-07-05");
   const [formExpiryDate, setFormExpiryDate] = useState("2027-07-05");
-  const [formBranch, setFormBranch] = useState(isDistrictScoped ? (centers[0]?.id || "") : (currentUser?.centerId || centers[0]?.id || ""));
+  const [formBranch, setFormBranch] = useState(isDistrictScoped ? (centers[0]?.id || "") : (currentUser?.centerId || ""));
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [reconcilingId, setReconcilingId] = useState(false);
   const [formError, setFormError] = useState("");
+
+  React.useEffect(() => {
+    if (!isDistrictScoped) {
+      setSelectedBranch(currentUser?.centerId || "");
+      setFormBranch(currentUser?.centerId || "");
+    }
+  }, [currentUser?.centerId, isDistrictScoped]);
 
   const activeDate = new Date("2026-07-05"); // Anchored simulation date
 

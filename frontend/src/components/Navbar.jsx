@@ -21,7 +21,8 @@ export const Navbar = () => {
     language, 
     setLanguage, 
     setActiveTab,
-    t 
+    t,
+    updateUserCenter
   } = useApp();
 
   const [showVoice, setShowVoice] = useState(false);
@@ -51,8 +52,8 @@ export const Navbar = () => {
   }, []);
 
   // Determine current active center and calculate health score
-  const isDistrictScoped = true;
-  const activeCenterId = isDistrictScoped ? (centers[0]?.id || "") : (currentUser?.centerId || centers[0]?.id || "");
+  const isDistrictScoped = currentUser?.role === "Admin" || currentUser?.role === "District Officer";
+  const activeCenterId = isDistrictScoped ? (centers[0]?.id || "") : (currentUser?.centerId || "");
   const activeCenter = centers.find(c => c.id === activeCenterId);
   const healthScore = activeCenter ? activeCenter.healthScore : 100;
 
@@ -68,20 +69,44 @@ export const Navbar = () => {
     <header className="h-16 bg-white border-b border-slate-200 fixed top-0 right-0 left-64 z-10 px-8 flex items-center justify-between shadow-sm">
       {/* Center Details or District Officer aggregated dashboard indicator */}
       <div className="flex items-center space-x-4">
-        <div>
-          <h2 className="text-base font-bold text-slate-800 uppercase tracking-wide">
-            {activeCenter?.centerName || "Health Center Node"}
-          </h2>
-          <p className="text-[10px] text-slate-400 font-semibold tracking-wider uppercase">
-            Government Intelligence Dashboard
-          </p>
-        </div>
+        {isDistrictScoped ? (
+          <div>
+            <h2 className="text-base font-bold text-slate-800 uppercase tracking-wide">
+              {activeCenter?.centerName || "All Health Center Nodes"}
+            </h2>
+            <p className="text-[10px] text-slate-400 font-semibold tracking-wider uppercase">
+              Government Intelligence Dashboard
+            </p>
+          </div>
+        ) : (
+          <div className="flex items-center space-x-2">
+            <span className="text-2xs font-extrabold text-slate-400 uppercase tracking-wider">Assigned Center:</span>
+            {centers.length > 0 ? (
+              <select
+                value={currentUser?.centerId || ""}
+                onChange={async (e) => await updateUserCenter(e.target.value)}
+                className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-700 focus:outline-none cursor-pointer hover:bg-slate-105 transition-colors shadow-sm"
+              >
+                <option value="">-- Choose Center --</option>
+                {centers.map(c => (
+                  <option key={c.id} value={c.id}>{c.centerName}</option>
+                ))}
+              </select>
+            ) : (
+              <span className="text-2xs font-extrabold text-red-505 bg-red-50 border border-red-100 px-2 py-0.5 rounded-full uppercase tracking-wide">
+                No Centers Exist (Unassigned)
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Global/PHC Health Score */}
-        <div className={`px-3 py-1 rounded-full border text-xs font-bold flex items-center space-x-1.5 shadow-sm ${scoreColor}`}>
-          <Heart className="w-3.5 h-3.5 fill-current animate-heartbeat" />
-          <span>Health Score: {healthScore}/100</span>
-        </div>
+        {activeCenter && (
+          <div className={`px-3 py-1 rounded-full border text-xs font-bold flex items-center space-x-1.5 shadow-sm ${scoreColor}`}>
+            <Heart className="w-3.5 h-3.5 fill-current animate-heartbeat" />
+            <span>Health Score: {healthScore}/100</span>
+          </div>
+        )}
       </div>
 
       {/* Utilities */}

@@ -18,8 +18,8 @@ export const DashboardCards = () => {
   const { currentUser, stock, stockTransactions, centers, attendance, t } = useApp();
 
   // Filter metrics based on scope
-  const isDistrictScoped = true;
-  const activeCenterId = isDistrictScoped ? (centers[0]?.id || "") : (currentUser?.centerId || centers[0]?.id || "");
+  const isDistrictScoped = currentUser?.role === "Admin" || currentUser?.role === "District Officer";
+  const activeCenterId = isDistrictScoped ? (centers[0]?.id || "") : (currentUser?.centerId || "");
 
   // Local state for branch filtering on dashboard
   const [selectedCenterId, setSelectedCenterId] = useState("");
@@ -27,12 +27,15 @@ export const DashboardCards = () => {
   React.useEffect(() => {
     if (activeCenterId && !selectedCenterId) {
       setSelectedCenterId(activeCenterId);
+    } else if (!isDistrictScoped && currentUser?.centerId !== selectedCenterId) {
+      // Keep selectedCenterId synced with centerId if center is changed
+      setSelectedCenterId(currentUser?.centerId || "");
     }
-  }, [activeCenterId, selectedCenterId]);
+  }, [activeCenterId, selectedCenterId, currentUser?.centerId, isDistrictScoped]);
 
   const defaultCenterPlaceholder = { 
     id: "none", 
-    centerName: "No Hospital Center Registered", 
+    centerName: "No Healthcare Center Assigned", 
     type: "PHC", 
     district: "N/A", 
     capacity: 0, 
@@ -41,7 +44,7 @@ export const DashboardCards = () => {
     healthScore: 0 
   };
 
-  const currentCenter = centers.find(c => c.id === selectedCenterId) || centers[0] || defaultCenterPlaceholder;
+  const currentCenter = centers.find(c => c.id === selectedCenterId) || defaultCenterPlaceholder;
   const centerStocks = stock.filter(s => s.centerId === selectedCenterId);
   const centerDocs = attendance.filter(a => a.centerId === selectedCenterId);
 
