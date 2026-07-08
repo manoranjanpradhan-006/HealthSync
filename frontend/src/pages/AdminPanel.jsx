@@ -67,6 +67,8 @@ export const AdminPanel = () => {
   const [newCenterLng, setNewCenterLng] = useState("");
   const [addingCenter, setAddingCenter] = useState(false);
   const [centerFormError, setCenterFormError] = useState("");
+  const [geocoding, setGeocoding] = useState(false);
+  const [geocodeError, setGeocodeError] = useState("");
 
   // Aggregate numbers
   const totalPHCs = 45; 
@@ -122,6 +124,53 @@ export const AdminPanel = () => {
       console.error(e);
     } finally {
       setAddingDoc(false);
+    }
+  };
+
+  // Geocode address using Nominatim API
+  const handleGeocodeAddress = async () => {
+    const parts = [
+      newCenterPlace,
+      newCenterBlock,
+      newCenterDistrict,
+      newCenterState,
+      newCenterCountry
+    ].map(p => p.trim()).filter(Boolean);
+
+    if (parts.length === 0) {
+      setGeocodeError("Enter place, block, district, state, or country first.");
+      return;
+    }
+
+    const query = parts.join(", ");
+    setGeocoding(true);
+    setGeocodeError("");
+
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`,
+        {
+          headers: {
+            "User-Agent": "HealthSync-HospitalMonitor-admin@healthsync.gov.in"
+          }
+        }
+      );
+
+      if (!response.ok) throw new Error("Geocoding API response error: " + response.statusText);
+      const data = await response.json();
+
+      if (data && data.length > 0) {
+        setNewCenterLat(parseFloat(data[0].lat).toFixed(4));
+        setNewCenterLng(parseFloat(data[0].lon).toFixed(4));
+        setGeocodeError("");
+      } else {
+        setGeocodeError("No coordinates found for the given address.");
+      }
+    } catch (err) {
+      console.error(err);
+      setGeocodeError("Failed to fetch coordinates: " + err.message);
+    } finally {
+      setGeocoding(false);
     }
   };
 
@@ -907,6 +956,20 @@ export const AdminPanel = () => {
                     className="w-full px-3.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-2xs font-semibold text-slate-650 focus:outline-none focus:ring-1 focus:ring-teal-500"
                   />
                 </div>
+              </div>
+
+              <div className="flex flex-col space-y-1">
+                <button
+                  type="button"
+                  disabled={geocoding}
+                  onClick={handleGeocodeAddress}
+                  className="w-full py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 disabled:opacity-50 font-bold rounded-xl text-3xs uppercase tracking-wide cursor-pointer transition-all border border-slate-200 text-center"
+                >
+                  {geocoding ? "Locating on OSM..." : "Fetch Coordinates via Address"}
+                </button>
+                {geocodeError && (
+                  <span className="text-3xs text-red-500 font-semibold">{geocodeError}</span>
+                )}
               </div>
 
               <button
