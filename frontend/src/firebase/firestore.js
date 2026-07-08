@@ -12,26 +12,95 @@ import {
 } from "firebase/firestore";
 import { IS_MOCKED, dbInstance, authInstance } from "./firebase";
 
-// Fallbacks are empty to guarantee a clean workspace
-const INITIAL_CENTERS = {};
-const INITIAL_STOCK = {};
-const INITIAL_TRANSACTIONS = {};
-const INITIAL_CONSUMPTION = {};
-const INITIAL_PATIENTS = {};
-const INITIAL_ATTENDANCE = {};
-const INITIAL_ALERTS = {};
+const INITIAL_CENTERS = {
+  "phc-a": { id: "phc-a", centerName: "PHC Anantapur", type: "PHC", district: "Anantapur", capacity: 100, latitude: 14.6819, longitude: 77.6006, healthScore: 88, bedsAvailable: 45, bedsOccupied: 55, equipmentScore: 92 },
+  "phc-b": { id: "phc-b", centerName: "PHC Dharmavaram", type: "PHC", district: "Anantapur", capacity: 80, latitude: 14.4137, longitude: 77.7126, healthScore: 74, bedsAvailable: 12, bedsOccupied: 68, equipmentScore: 78 },
+  "chc-c": { id: "chc-c", centerName: "CHC Gooty", type: "CHC", district: "Anantapur", capacity: 150, latitude: 15.1187, longitude: 77.6322, healthScore: 91, bedsAvailable: 90, bedsOccupied: 60, equipmentScore: 88 },
+  "phc-d": { id: "phc-d", centerName: "PHC Hindupur", type: "PHC", district: "Anantapur", capacity: 60, latitude: 13.8290, longitude: 77.4930, healthScore: 61, bedsAvailable: 4, bedsOccupied: 56, equipmentScore: 65 },
+  "chc-e": { id: "chc-e", centerName: "CHC Kadiri", type: "CHC", district: "Anantapur", capacity: 120, latitude: 14.1166, longitude: 78.1583, healthScore: 82, bedsAvailable: 40, bedsOccupied: 80, equipmentScore: 84 }
+};
 
-// Helper: Get user scope key to sandbox databases per credential
+const INITIAL_STOCK = {
+  "stock-1": { id: "stock-1", medicineName: "Paracetamol", quantity: 950, threshold: 200, centerId: "phc-a", last_updated: new Date().toISOString() },
+  "stock-2": { id: "stock-2", medicineName: "Ibuprofen", quantity: 450, threshold: 150, centerId: "phc-a", last_updated: new Date().toISOString() },
+  "stock-3": { id: "stock-3", medicineName: "ORS", quantity: 20, threshold: 100, centerId: "phc-a", last_updated: new Date().toISOString() },
+  
+  "stock-4": { id: "stock-4", medicineName: "Paracetamol", quantity: 120, threshold: 200, centerId: "phc-b", last_updated: new Date().toISOString() },
+  "stock-5": { id: "stock-5", medicineName: "Ibuprofen", quantity: 280, threshold: 150, centerId: "phc-b", last_updated: new Date().toISOString() },
+  "stock-6": { id: "stock-6", medicineName: "ORS", quantity: 340, threshold: 100, centerId: "phc-b", last_updated: new Date().toISOString() },
+
+  "stock-7": { id: "stock-7", medicineName: "Paracetamol", quantity: 600, threshold: 200, centerId: "chc-c", last_updated: new Date().toISOString() },
+  "stock-8": { id: "stock-8", medicineName: "Ibuprofen", quantity: 180, threshold: 150, centerId: "chc-c", last_updated: new Date().toISOString() },
+  "stock-9": { id: "stock-9", medicineName: "ORS", quantity: 220, threshold: 100, centerId: "chc-c", last_updated: new Date().toISOString() }
+};
+
+const INITIAL_PATIENTS = {
+  "pat-1": { id: "pat-1", date: "2026-07-03", count: 180, centerId: "phc-a" },
+  "pat-2": { id: "pat-2", date: "2026-07-03", count: 210, centerId: "phc-a" },
+  "pat-3": { id: "pat-3", date: "2026-07-03", count: 195, centerId: "phc-a" },
+  "pat-4": { id: "pat-4", date: "2026-07-03", count: 240, centerId: "phc-a" },
+  "pat-5": { id: "pat-5", date: "2026-07-03", count: 225, centerId: "phc-a" },
+  "pat-6": { id: "pat-6", date: "2026-07-03", count: 270, centerId: "phc-a" },
+  "pat-7": { id: "pat-7", date: "2026-07-03", count: 256, centerId: "phc-a" },
+
+  "pat-8": { id: "pat-8", date: "2026-07-03", count: 110, centerId: "phc-b" },
+  "pat-9": { id: "pat-9", date: "2026-07-03", count: 145, centerId: "chc-c" }
+};
+
+const INITIAL_ATTENDANCE = {
+  "att-1": { id: "att-1", doctorId: "doc-1", doctorName: "Dr. Rajesh Kumar", specialty: "General Medicine", status: "Present", date: "2026-07-03", centerId: "phc-a" },
+  "att-2": { id: "att-2", doctorId: "doc-2", doctorName: "Dr. Sneha Reddy", specialty: "Pediatrics", status: "Present", date: "2026-07-03", centerId: "phc-a" },
+  "att-3": { id: "att-3", doctorId: "doc-3", doctorName: "Dr. Vikram Dev", specialty: "General Medicine", status: "Absent", date: "2026-07-03", centerId: "phc-a" },
+  "att-4": { id: "att-4", doctorId: "doc-4", doctorName: "Dr. Anjali Sen", specialty: "Obstetrics", status: "Present", date: "2026-07-03", centerId: "phc-a" },
+  
+  "att-5": { id: "att-5", doctorId: "doc-5", doctorName: "Dr. Amit Verma", specialty: "General Medicine", status: "Absent", date: "2026-07-03", centerId: "phc-b" },
+  "att-6": { id: "att-6", doctorId: "doc-6", doctorName: "Dr. Priya Das", specialty: "Gynecology", status: "Present", date: "2026-07-03", centerId: "phc-b" }
+};
+
+const INITIAL_ALERTS = {
+  "alert-1": { id: "alert-1", title: "Low Medicine Stock", message: "ORS stock is critical (20 Units left) at PHC Anantapur", severity: "danger", timestamp: new Date(Date.now() - 120000).toISOString(), centerId: "phc-a", resolved: false },
+  "alert-2": { id: "alert-2", title: "Doctor Shortage", message: "Attendance rate below 75% at PHC Hindupur", severity: "warning", timestamp: new Date(Date.now() - 300000).toISOString(), centerId: "phc-d", resolved: false },
+  "alert-3": { id: "alert-3", title: "Overcrowding Alert", message: "Patient count is at 85% bed capacity at PHC Dharmavaram", severity: "danger", timestamp: new Date(Date.now() - 540000).toISOString(), centerId: "phc-b", resolved: false }
+};
+
+const FALLBACK_SEEDS = {
+  centers: INITIAL_CENTERS,
+  stock: INITIAL_STOCK,
+  patients: INITIAL_PATIENTS,
+  attendance: INITIAL_ATTENDANCE,
+  alerts: INITIAL_ALERTS,
+  stock_transactions: {},
+  consumption_log: {}
+};
+
+const isLocalDemoMode = () => {
+  if (IS_MOCKED) return true;
+  try {
+    const user = JSON.parse(localStorage.getItem("healthsync_auth_user"));
+    const email = (user?.email || "").toLowerCase().trim();
+    return email === "admin@healthsync.gov.in" ||
+           email === "officer@healthsync.gov.in" ||
+           email === "staff@healthsync.gov.in" ||
+           email === "doctor@healthsync.gov.in";
+  } catch (e) {
+    return false;
+  }
+};
+
 const getUserScope = () => {
+  let localUserUid = null;
+  try {
+    const user = JSON.parse(localStorage.getItem("healthsync_auth_user"));
+    localUserUid = user?.uid;
+  } catch (e) {}
+
   if (!IS_MOCKED) {
+    if (localUserUid && (localUserUid.startsWith("usr-") || localUserUid === "usr-admin" || localUserUid === "usr-officer" || localUserUid === "usr-staff" || localUserUid === "usr-doctor")) {
+      return localUserUid;
+    }
     return authInstance.currentUser?.uid || "anonymous";
   } else {
-    try {
-      const user = JSON.parse(localStorage.getItem("healthsync_auth_user"));
-      return user?.uid || "anonymous";
-    } catch (e) {
-      return "anonymous";
-    }
+    return localUserUid || "anonymous";
   }
 };
 
@@ -47,7 +116,7 @@ const getMockState = (collectionName) => {
       console.error(`Error parsing localStorage key ${storageKey}`, e);
     }
   }
-  const fallback = {};
+  const fallback = FALLBACK_SEEDS[collectionName] || {};
   localStorage.setItem(storageKey, JSON.stringify(fallback));
   return fallback;
 };
@@ -87,7 +156,7 @@ const notifyObservers = (collectionName) => {
 export const firestore = {
   // Real-time listener registration
   onSnapshot: (collectionName, callback) => {
-    if (!IS_MOCKED) {
+    if (!isLocalDemoMode()) {
       const userId = getUserScope();
       // Sandbox collection under /users/{userId}/{collectionName}
       const colRef = collection(dbInstance, "users", userId, collectionName);
@@ -119,7 +188,7 @@ export const firestore = {
 
   // Read snapshot once
   getDocs: async (collectionName) => {
-    if (!IS_MOCKED) {
+    if (!isLocalDemoMode()) {
       const userId = getUserScope();
       const colRef = collection(dbInstance, "users", userId, collectionName);
       const snapshot = await getDocs(colRef);
@@ -157,7 +226,7 @@ export const firestore = {
     const updatedAtStr = mergedData.updatedAt || new Date().toISOString();
     const lastUpdatedStr = mergedData.last_updated || new Date().toISOString();
 
-    if (!IS_MOCKED) {
+    if (!isLocalDemoMode()) {
       const userId = getUserScope();
       const docRef = doc(dbInstance, "users", userId, collectionName, docId);
       await sdkUpdateDoc(docRef, {
@@ -201,7 +270,7 @@ export const firestore = {
 
     const timestampStr = data.timestamp || new Date().toISOString();
 
-    if (!IS_MOCKED) {
+    if (!isLocalDemoMode()) {
       const userId = getUserScope();
       if (data.id) {
         await setDoc(doc(dbInstance, "users", userId, collectionName, data.id), {
@@ -237,7 +306,7 @@ export const firestore = {
 
   // Delete a document
   deleteDoc: async (collectionName, docId) => {
-    if (!IS_MOCKED) {
+    if (!isLocalDemoMode()) {
       const userId = getUserScope();
       const docRef = doc(dbInstance, "users", userId, collectionName, docId);
       await sdkDeleteDoc(docRef);

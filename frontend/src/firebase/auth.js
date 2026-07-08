@@ -2,7 +2,9 @@ import {
   onAuthStateChanged, 
   signInWithEmailAndPassword as sdkSignIn, 
   signOut as sdkSignOut, 
-  createUserWithEmailAndPassword as sdkCreateUser 
+  createUserWithEmailAndPassword as sdkCreateUser,
+  signInWithPopup,
+  GoogleAuthProvider
 } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { IS_MOCKED, authInstance, dbInstance } from "./firebase";
@@ -42,6 +44,11 @@ const DEFAULT_USERS = {
   }
 };
 
+const isDemoEmail = (email) => {
+  const formatted = (email || "").toLowerCase().trim();
+  return !!DEFAULT_USERS[formatted];
+};
+
 const authListeners = new Set();
 let currentUser = null;
 
@@ -62,68 +69,82 @@ const notifyAuthListeners = () => {
 export const auth = {
   // Listen to auth state changes
   onAuthStateChanged: (callback) => {
+    authListeners.add(callback);
+    callback(currentUser);
+
     if (!IS_MOCKED) {
-      return onAuthStateChanged(authInstance, async (firebaseUser) => {
+      const unsub = onAuthStateChanged(authInstance, async (firebaseUser) => {
         if (firebaseUser) {
-          try {
-            const userDocRef = doc(dbInstance, "users", firebaseUser.uid);
-            const userSnapshot = await getDoc(userDocRef);
-            
-            if (userSnapshot.exists()) {
-              currentUser = {
-                uid: firebaseUser.uid,
-                email: firebaseUser.email,
-                ...userSnapshot.data()
-              };
-            } else {
-              // Fallback defaults if user was manually added in the console and has no Firestore profile doc
-              const emailLower = (firebaseUser.email || "").toLowerCase();
-              let role = "Staff";
-              let centerId = "";
-              if (emailLower.includes("admin")) {
-                role = "Admin";
-                centerId = "all";
-              } else if (emailLower.includes("officer")) {
-                role = "District Officer";
-                centerId = "all";
+          const emailLower = (firebaseUser.email || "").toLowerCase().trim();
+          if (isDemoEmail(emailLower)) {
+            currentUser = DEFAULT_USERS[emailLower];
+            localStorage.setItem("healthsync_auth_user", JSON.stringify(currentUser));
+          } else {
+            try {
+              const userDocRef = doc(dbInstance, "users", firebaseUser.uid);
+              const userSnapshot = await getDoc(userDocRef);
+              
+              if (userSnapshot.exists()) {
+                currentUser = {
+                  uid: firebaseUser.uid,
+                  email: firebaseUser.email,
+                  ...userSnapshot.data()
+                };
+              } else {
+                // Fallback defaults if user was manually added in the console and has no Firestore profile doc
+                let role = "Staff";
+                let centerId = "";
+                if (emailLower.includes("admin")) {
+                  role = "Admin";
+                  centerId = "all";
+                } else if (emailLower.includes("officer")) {
+                  role = "District Officer";
+                  centerId = "all";
+                }
+                
+                currentUser = {
+                  uid: firebaseUser.uid,
+                  email: firebaseUser.email,
+                  name: firebaseUser.displayName || firebaseUser.email.split("@")[0],
+                  role,
+                  district: "Default District",
+                  centerId
+                };
+                
+                // Persist fallback to Firestore
+                await setDoc(userDocRef, {
+                  name: currentUser.name,
+                  role: currentUser.role,
+                  district: currentUser.district,
+                  centerId: currentUser.centerId
+                });
               }
-              
+            } catch (e) {
+              console.error("Firestore user profile retrieval error:", e);
               currentUser = {
                 uid: firebaseUser.uid,
                 email: firebaseUser.email,
-                name: firebaseUser.displayName || firebaseUser.email.split("@")[0],
-                role,
+                name: firebaseUser.email.split("@")[0],
+                role: "Staff",
                 district: "Default District",
-                centerId
+                centerId: ""
               };
-              
-              // Persist fallback to Firestore
-              await setDoc(userDocRef, {
-                name: currentUser.name,
-                role: currentUser.role,
-                district: currentUser.district,
-                centerId: currentUser.centerId
-              });
             }
-          } catch (e) {
-            console.error("Firestore user profile retrieval error:", e);
-            currentUser = {
-              uid: firebaseUser.uid,
-              email: firebaseUser.email,
-              name: firebaseUser.email.split("@")[0],
-              role: "Staff",
-              district: "Default District",
-              centerId: ""
-            };
           }
         } else {
-          currentUser = null;
+          // If firebaseUser is null but local currentUser is a demo user, keep them logged in
+          const isDemo = currentUser && isDemoEmail(currentUser.email);
+          if (!isDemo) {
+            currentUser = null;
+          }
         }
-        callback(currentUser);
+        notifyAuthListeners();
       });
+      return () => {
+        authListeners.delete(callback);
+        unsub();
+      };
     } else {
-      authListeners.add(callback);
-      callback(currentUser);
       return () => {
         authListeners.delete(callback);
       };
@@ -133,6 +154,32 @@ export const auth = {
   // Email login
   signInWithEmailAndPassword: async (email, password) => {
     const formattedEmail = email.toLowerCase().trim();
+    
+    if (isDemoEmail(formattedEmail)) {
+      // Set no authentication: bypass Firebase Auth check for demo accounts!
+      const demoUser = DEFAULT_USERS[formattedEmail];
+      if (!IS_MOCKED) {
+        try {
+          // Attempt under-the-hood sign-in with default passwords to establish active Firebase session
+          const defaultPasswords = {
+            "admin@healthsync.gov.in": "admin123",
+            "officer@healthsync.gov.in": "officer123",
+            "staff@healthsync.gov.in": "staff123",
+            "doctor@healthsync.gov.in": "doctor123"
+          };
+          await sdkSignIn(authInstance, formattedEmail, defaultPasswords[formattedEmail]);
+        } catch (e) {
+          console.warn("Under-the-hood Firebase sign-in failed for demo user, falling back to mock bypass:", e);
+          try {
+            await sdkSignOut(authInstance);
+          } catch (err) {}
+        }
+      }
+      currentUser = demoUser;
+      localStorage.setItem("healthsync_auth_user", JSON.stringify(currentUser));
+      notifyAuthListeners();
+      return currentUser;
+    }
     
     if (!IS_MOCKED) {
       const userCredential = await sdkSignIn(authInstance, formattedEmail, password);
@@ -181,16 +228,6 @@ export const auth = {
     } else {
       await new Promise(resolve => setTimeout(resolve, 800));
       
-      if (DEFAULT_USERS[formattedEmail]) {
-        const passCheck = password.length >= 6;
-        if (passCheck) {
-          currentUser = DEFAULT_USERS[formattedEmail];
-          localStorage.setItem("healthsync_auth_user", JSON.stringify(currentUser));
-          notifyAuthListeners();
-          return currentUser;
-        }
-      }
-      
       const localUsers = JSON.parse(localStorage.getItem("healthsync_db_users") || "{}");
       if (localUsers[formattedEmail] && password.length >= 6) {
         currentUser = localUsers[formattedEmail];
@@ -199,29 +236,66 @@ export const auth = {
         return currentUser;
       }
       
-      throw new Error("Invalid credentials. Enter any email from default list (e.g. officer@healthsync.gov.in) with any password >= 6 characters.");
+      throw new Error("Invalid credentials. Try registering a new account or using demo login.");
     }
   },
 
   // Google Login (logs in as a District Officer)
   signInWithGoogle: async () => {
-    await new Promise(resolve => setTimeout(resolve, 600));
-    currentUser = {
-      uid: "usr-google",
-      name: "Dr. Sandeep Singh (Google Auth)",
-      email: "sandeep.singh@gmail.com",
-      role: "District Officer",
-      district: "Default District",
-      centerId: "all"
-    };
-    localStorage.setItem("healthsync_auth_user", JSON.stringify(currentUser));
-    notifyAuthListeners();
-    return currentUser;
+    if (!IS_MOCKED) {
+      const provider = new GoogleAuthProvider();
+      const userCredential = await signInWithPopup(authInstance, provider);
+      const firebaseUser = userCredential.user;
+      
+      const userDocRef = doc(dbInstance, "users", firebaseUser.uid);
+      const userSnapshot = await getDoc(userDocRef);
+      
+      if (userSnapshot.exists()) {
+        currentUser = {
+          uid: firebaseUser.uid,
+          email: firebaseUser.email,
+          ...userSnapshot.data()
+        };
+      } else {
+        currentUser = {
+          uid: firebaseUser.uid,
+          email: firebaseUser.email,
+          name: firebaseUser.displayName || firebaseUser.email.split("@")[0],
+          role: "District Officer", // Default role for new Google sign-in
+          district: "Default District",
+          centerId: "all"
+        };
+        await setDoc(userDocRef, {
+          name: currentUser.name,
+          role: currentUser.role,
+          district: currentUser.district,
+          centerId: currentUser.centerId
+        });
+      }
+      localStorage.setItem("healthsync_auth_user", JSON.stringify(currentUser));
+      return currentUser;
+    } else {
+      await new Promise(resolve => setTimeout(resolve, 600));
+      currentUser = {
+        uid: "usr-google",
+        name: "Dr. Sandeep Singh (Google Auth)",
+        email: "sandeep.singh@gmail.com",
+        role: "District Officer",
+        district: "Default District",
+        centerId: "all"
+      };
+      localStorage.setItem("healthsync_auth_user", JSON.stringify(currentUser));
+      notifyAuthListeners();
+      return currentUser;
+    }
   },
 
   // SignUp simulation
   createUserWithEmailAndPassword: async (email, password, extraData) => {
     const formattedEmail = email.toLowerCase().trim();
+    if (isDemoEmail(formattedEmail)) {
+      throw new Error("Registration for demo accounts is disabled. Please use a different email address.");
+    }
     if (password.length < 6) {
       throw new Error("Password must be at least 6 characters long.");
     }
